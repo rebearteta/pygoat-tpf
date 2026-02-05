@@ -2,39 +2,21 @@ pipeline {
     agent any
     stages {
 
-        stage('Secrets Scan - Gitleaks') {
-            agent { 
-                docker { 
-                    image 'zricethezav/gitleaks:latest' 
-                    args '--entrypoint ""'
-                    reuseNode true
-                } 
-            } 
-            steps { 
-                sh ''' 
-                    echo "Ejecutando análisis de secretos con Gitleaks..."
-                    set -eux 
-                    set +e
-                    gitleaks detect \
-                        --source . \
-                        --report-format json \
-                        --report-path gitleaks-report.json \
-                        --redact \
-                        --exit-code 1 
-                    GITLEAKS_EXIT_CODE=$?
-                    set -e
+        stage('SAST - Bandit') {
+            steps {
+                sh '''
+                    echo "Ejecutando análisis SAST con Bandit..."
+                    python --version
+                    python -m pip --version
+                    python -m pip install --user --no-cache-dir bandit
 
-                    if [ $GITLEAKS_EXIT_CODE -eq 1 ]; then 
-                        echo "Se encontraron secretos en el código." 
-                        exit 1 
-                    else 
-                        echo "No se encontraron secretos." 
-                    fi
+                    # Gate: solo severidad HIGH(y opcionalmente confianza HIGH)
+                    python -m bandit -r . --severity-level high --confidence-level high -f json -o bandit-report.json
                 '''
-            } 
-            post { 
-                always { 
-                    archiveArtifacts artifacts: 'gitleaks-report.json', allowEmptyArchive: true 
+            }
+            post {
+                always {
+                archiveArtifacts artifacts: 'bandit-report.json', fingerprint: true
                 }
             }
         }
