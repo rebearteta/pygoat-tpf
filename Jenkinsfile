@@ -10,6 +10,11 @@ pipeline {
     }
     stages {
         stage('SCA - Dependency-Track') {
+            agent { 
+                docker { 
+                    image 'python:3.12-slim' 
+                } 
+            }
             steps {
                 sh '''
                     echo "Generando SBOM con CycloneDX..."
