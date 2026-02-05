@@ -10,8 +10,18 @@ pipeline {
                     python -m pip --version
                     python -m pip install --user --no-cache-dir bandit
 
-                    # Gate: solo severidad HIGH(y opcionalmente confianza HIGH)
+                    set -eux
+                    set +e
                     python -m bandit -r . --severity-level high --confidence-level high -f json -o bandit-report.json
+                    BANDIT_EXIT_CODE=$?
+                    set -e
+
+                    if [ $BANDIT_EXIT_CODE -ne 0 ]; then
+                        echo "Se encontraron hallazgos de severidad alta en Bandit."
+                        exit 1
+                    else
+                        echo "No se encontraron hallazgos de severidad alta en Bandit."
+                    fi
                 '''
             }
             post {
