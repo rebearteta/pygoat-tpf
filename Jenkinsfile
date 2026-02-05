@@ -3,6 +3,11 @@ pipeline {
     stages {
 
         stage('SAST - Bandit') {
+            agent { 
+                docker { 
+                    image 'python:3.12-slim' 
+                } 
+            }
             steps {
                 sh '''
                     echo "Ejecutando análisis SAST con Bandit..."
