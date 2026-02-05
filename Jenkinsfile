@@ -18,10 +18,20 @@ pipeline {
             steps {
                 sh '''
                     echo "Generando SBOM con CycloneDX..."
-                    python --version
-                    python -m pip --version
-                    python -m pip install --user --no-cache-dir cyclonedx-bom
-                    python -m cyclonedx-py --of XML --sv 1.6 -o  ${SBOM_FILE}
+                    set -eux
+                    python3 -m venv .venv
+                    . .venv/bin/activate
+            
+                    python -m pip install -U pip cyclonedx-bom
+
+                    echo "Detectando dependencias y generando SBOM..."
+                    if [ -f requirements.txt ]; then
+                        cyclonedx-py requirements requirements.txt --of XML --sv 1.6 -o "${SBOM_FILE}"
+                    else
+                        cyclonedx-py environment --of XML --sv 1.6 -o "${SBOM_FILE}"
+                    fi
+                    
+                    echo "SBOM generado"
 
                     echo "Subiendo SBOM a Dependency-Track..."
                     dependencyTrackPublisher(
