@@ -4,39 +4,28 @@ pipeline {
         HOME = "${WORKSPACE}"
         PIP_CACHE_DIR = "${WORKSPACE}/.pip-cache"
         PIP_DISABLE_PIP_VERSION_CHECK = "1"
+        PROJECT_NAME = 'pygoat-tf'
+        PROJECT_VER = "build-${BUILD_NUMBER}"
+        SBOM_FILE = 'bom.xml'
     }
     stages {
-        stage('SAST - Bandit') {
-            agent { 
-                docker { 
-                    image 'python:3.12-slim' 
-                } 
-            }
+        stage('SCA - Dependency-Track') {
             steps {
                 sh '''
-                    echo "Ejecutando análisis SAST con Bandit..."
+                    echo "Generando SBOM con CycloneDX..."
                     python --version
                     python -m pip --version
-                    python -m pip install --user --no-cache-dir bandit
+                    python -m pip install --user --no-cache-dir cyclonedx-bom
+                    python -m cyclonedx-py --of XML --sv 1.6 -o  ${SBOM_FILE}
 
-                    set -eux
-                    set +e
-                    python -m bandit -r . --severity-level high --confidence-level high -f json -o bandit-report.json
-                    BANDIT_EXIT_CODE=$?
-                    set -e
-
-                    if [ $BANDIT_EXIT_CODE -ne 0 ]; then
-                        echo "Se encontraron hallazgos de severidad alta en Bandit."
-                        exit 1
-                    else
-                        echo "No se encontraron hallazgos de severidad alta en Bandit."
-                    fi
+                    echo "Subiendo SBOM a Dependency-Track..."
+                    dependencyTrackPublisher(
+                        projectName: "${env.PROJECT_NAME}",
+                        projectVersion: "${env.PROJECT_VER}",
+                        artifact: "${env.SBOM_FILE}",
+                        synchronous: true
+                    )
                 '''
-            }
-            post {
-                always {
-                archiveArtifacts artifacts: 'bandit-report.json', fingerprint: true
-                }
             }
         }
 
