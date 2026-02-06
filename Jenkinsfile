@@ -32,15 +32,15 @@ pipeline {
                     fi
                     
                     echo "SBOM generado"
-
                     echo "Subiendo SBOM a Dependency-Track..."
-                    dependencyTrackPublisher(
-                        projectName: "${env.PROJECT_NAME}",
-                        projectVersion: "${env.PROJECT_VER}",
-                        artifact: "${env.SBOM_FILE}",
-                        synchronous: true
-                    )
                 '''
+                // Llamada a step de Jenkins para subir SBOM
+                dependencyTrackPublisher(
+                    projectName: "${env.PROJECT_NAME}",
+                    projectVersion: "${env.PROJECT_VER}",
+                    artifact: "${env.SBOM_FILE}",
+                    synchronous: true
+                )
             }
         }
 
